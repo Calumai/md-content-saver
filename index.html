@@ -12,12 +12,13 @@
         <header class="topbar">
           <div>
             <h1>MD 內容儲存器</h1>
-            <p>寫下內容、即時預覽，然後下載成 Markdown 檔。</p>
+            <p>寫下內容、即時預覽，並可直接發布成 GitHub 裡的 Markdown 檔。</p>
           </div>
           <div class="actions">
             <button id="newButton" type="button">新增</button>
-            <button id="saveButton" type="button">儲存</button>
-            <button id="downloadButton" type="button" class="primary">下載 .md</button>
+            <button id="saveButton" type="button">儲存草稿</button>
+            <button id="downloadButton" type="button">下載 .md</button>
+            <button id="publishButton" type="button" class="primary">發布到 GitHub</button>
           </div>
         </header>
 
@@ -29,6 +30,10 @@
           <label>
             標題
             <input id="titleInput" type="text" placeholder="例如：今天的筆記" autocomplete="off">
+          </label>
+          <label>
+            發布密碼
+            <input id="publishPasswordInput" type="password" placeholder="Vercel 後端設定的密碼" autocomplete="current-password">
           </label>
         </div>
 

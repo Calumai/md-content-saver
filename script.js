@@ -1,7 +1,8 @@
-const storageKey = "md-content-tool:v1";
+const storageKey = "md-content-tool:v2";
 
 const filenameInput = document.querySelector("#filenameInput");
 const titleInput = document.querySelector("#titleInput");
+const publishPasswordInput = document.querySelector("#publishPasswordInput");
 const contentInput = document.querySelector("#contentInput");
 const preview = document.querySelector("#preview");
 const statusText = document.querySelector("#statusText");
@@ -10,6 +11,7 @@ const wordCount = document.querySelector("#wordCount");
 const newButton = document.querySelector("#newButton");
 const saveButton = document.querySelector("#saveButton");
 const downloadButton = document.querySelector("#downloadButton");
+const publishButton = document.querySelector("#publishButton");
 
 function normalizeFilename(value) {
   const cleaned = value.trim().replace(/[\\/:*?"<>|]+/g, "-");
@@ -162,6 +164,44 @@ function downloadMarkdown() {
   saveDraft();
 }
 
+async function publishMarkdown() {
+  const filename = normalizeFilename(filenameInput.value);
+  const content = buildMarkdown();
+  const password = publishPasswordInput.value;
+
+  if (!content.trim()) {
+    statusText.textContent = "內容是空的，先寫一點東西再發布。";
+    return;
+  }
+
+  publishButton.disabled = true;
+  statusText.textContent = "正在發布到 GitHub...";
+
+  try {
+    const response = await fetch("/api/publish", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "X-Publish-Password": password,
+      },
+      body: JSON.stringify({ filename, content }),
+    });
+    const result = await response.json().catch(() => ({}));
+
+    if (!response.ok) {
+      throw new Error(result.error || "發布失敗");
+    }
+
+    filenameInput.value = filename;
+    saveDraft();
+    statusText.innerHTML = `已發布：<a href="${result.htmlUrl}" target="_blank" rel="noreferrer">${result.path}</a>`;
+  } catch (error) {
+    statusText.textContent = error.message;
+  } finally {
+    publishButton.disabled = false;
+  }
+}
+
 function newDraft() {
   filenameInput.value = "note.md";
   titleInput.value = "";
@@ -177,6 +217,7 @@ function newDraft() {
 
 saveButton.addEventListener("click", saveDraft);
 downloadButton.addEventListener("click", downloadMarkdown);
+publishButton.addEventListener("click", publishMarkdown);
 newButton.addEventListener("click", newDraft);
 
 loadDraft();

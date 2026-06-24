@@ -1,0 +1,11 @@
+{
+  "name": "md-content-saver",
+  "version": "1.0.0",
+  "private": true,
+  "scripts": {
+    "check": "node --check script.js && node --check api/publish.js"
+  },
+  "engines": {
+    "node": ">=18"
+  }
+}
