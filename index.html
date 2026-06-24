@@ -1,0 +1,51 @@
+<!doctype html>
+<html lang="zh-Hant">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>MD 內容儲存器</title>
+    <link rel="stylesheet" href="styles.css">
+  </head>
+  <body>
+    <main class="app">
+      <section class="editor-panel" aria-label="Markdown editor">
+        <header class="topbar">
+          <div>
+            <h1>MD 內容儲存器</h1>
+            <p>寫下內容、即時預覽，然後下載成 Markdown 檔。</p>
+          </div>
+          <div class="actions">
+            <button id="newButton" type="button">新增</button>
+            <button id="saveButton" type="button">儲存</button>
+            <button id="downloadButton" type="button" class="primary">下載 .md</button>
+          </div>
+        </header>
+
+        <div class="meta-grid">
+          <label>
+            檔名
+            <input id="filenameInput" type="text" value="note.md" autocomplete="off">
+          </label>
+          <label>
+            標題
+            <input id="titleInput" type="text" placeholder="例如：今天的筆記" autocomplete="off">
+          </label>
+        </div>
+
+        <label class="content-label" for="contentInput">內容</label>
+        <textarea id="contentInput" spellcheck="false" placeholder="# 我的筆記&#10;&#10;在這裡輸入 Markdown 內容..."></textarea>
+        <p id="statusText" class="status" role="status">尚未儲存</p>
+      </section>
+
+      <section class="preview-panel" aria-label="Markdown preview">
+        <div class="preview-header">
+          <h2>預覽</h2>
+          <span id="wordCount">0 字</span>
+        </div>
+        <article id="preview" class="preview"></article>
+      </section>
+    </main>
+
+    <script src="script.js"></script>
+  </body>
+</html>
