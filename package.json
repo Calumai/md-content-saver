@@ -3,7 +3,7 @@
   "version": "1.0.0",
   "private": true,
   "scripts": {
-    "check": "node --check script.js && node --check api/publish.js"
+    "check": "node --check script.js && node --check api/publish.js && node --check api/notes.js"
   },
   "engines": {
     "node": ">=18"

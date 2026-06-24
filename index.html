@@ -3,19 +3,31 @@
   <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>MD 內容儲存器</title>
+    <title>MD 工具頁</title>
     <link rel="stylesheet" href="styles.css">
   </head>
   <body>
     <main class="app">
-      <section class="editor-panel" aria-label="Markdown editor">
+      <aside class="notes-panel" aria-label="Markdown files">
+        <header class="notes-header">
+          <div>
+            <h1>MD 檔案</h1>
+            <p>選一篇進入 MDE 工具頁。</p>
+          </div>
+          <button id="refreshNotesButton" type="button" title="重新整理">↻</button>
+        </header>
+        <button id="newButton" type="button" class="new-note-button">新增 MD</button>
+        <div id="notesList" class="notes-list" role="list"></div>
+        <p id="notesStatus" class="notes-status">正在讀取 GitHub 檔案...</p>
+      </aside>
+
+      <section class="editor-panel" aria-label="MDE tool page">
         <header class="topbar">
           <div>
-            <h1>MD 內容儲存器</h1>
-            <p>寫下內容、即時預覽，並可直接發布成 GitHub 裡的 Markdown 檔。</p>
+            <p class="eyebrow">MDE 工具頁</p>
+            <h2 id="editorHeading">新增或編輯 Markdown</h2>
           </div>
           <div class="actions">
-            <button id="newButton" type="button">新增</button>
             <button id="saveButton" type="button">儲存草稿</button>
             <button id="downloadButton" type="button">下載 .md</button>
             <button id="publishButton" type="button" class="primary">發布到 GitHub</button>
@@ -37,17 +49,22 @@
           </label>
         </div>
 
-        <label class="content-label" for="contentInput">內容</label>
-        <textarea id="contentInput" spellcheck="false" placeholder="# 我的筆記&#10;&#10;在這裡輸入 Markdown 內容..."></textarea>
-        <p id="statusText" class="status" role="status">尚未儲存</p>
-      </section>
+        <div class="workspace">
+          <label class="content-label" for="contentInput">
+            <span>內容</span>
+            <span id="wordCount">0 字</span>
+          </label>
+          <textarea id="contentInput" spellcheck="false" placeholder="# 我的筆記&#10;&#10;在這裡輸入 Markdown 內容..."></textarea>
 
-      <section class="preview-panel" aria-label="Markdown preview">
-        <div class="preview-header">
-          <h2>預覽</h2>
-          <span id="wordCount">0 字</span>
+          <section class="preview-panel" aria-label="Markdown preview">
+            <div class="preview-header">
+              <h3>預覽</h3>
+            </div>
+            <article id="preview" class="preview"></article>
+          </section>
         </div>
-        <article id="preview" class="preview"></article>
+
+        <p id="statusText" class="status" role="status">可以從左側選擇檔案，或新增一篇 MD。</p>
       </section>
     </main>
 

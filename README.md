@@ -5,6 +5,7 @@
 ## 功能
 
 - 編輯 Markdown 內容
+- 從左側清單選擇 GitHub `notes/` 裡的 Markdown 檔
 - 即時預覽標題、清單、引用、程式碼區塊、粗體、斜體和連結
 - 把草稿存在瀏覽器 localStorage
 - 下載目前內容成 `.md` 檔案

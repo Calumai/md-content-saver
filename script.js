@@ -1,5 +1,9 @@
-const storageKey = "md-content-tool:v2";
+const storageKey = "md-content-tool:v3";
 
+const notesList = document.querySelector("#notesList");
+const notesStatus = document.querySelector("#notesStatus");
+const refreshNotesButton = document.querySelector("#refreshNotesButton");
+const editorHeading = document.querySelector("#editorHeading");
 const filenameInput = document.querySelector("#filenameInput");
 const titleInput = document.querySelector("#titleInput");
 const publishPasswordInput = document.querySelector("#publishPasswordInput");
@@ -12,6 +16,9 @@ const newButton = document.querySelector("#newButton");
 const saveButton = document.querySelector("#saveButton");
 const downloadButton = document.querySelector("#downloadButton");
 const publishButton = document.querySelector("#publishButton");
+
+let notes = [];
+let activePath = "";
 
 function normalizeFilename(value) {
   const cleaned = value.trim().replace(/[\\/:*?"<>|]+/g, "-");
@@ -104,6 +111,16 @@ function renderMarkdown(markdown) {
   return html.join("\n");
 }
 
+function extractTitle(markdown) {
+  const heading = markdown.match(/^#\s+(.+)$/m);
+  return heading ? heading[1].trim() : "";
+}
+
+function contentWithoutTitle(markdown, title) {
+  if (!title) return markdown.trimEnd();
+  return markdown.replace(/^#\s+.+\r?\n\r?\n?/, "").trimEnd();
+}
+
 function buildMarkdown() {
   const title = titleInput.value.trim();
   const body = contentInput.value.trimEnd();
@@ -118,16 +135,86 @@ function updatePreview() {
   wordCount.textContent = `${markdown.replace(/\s/g, "").length} 字`;
 }
 
+function setActivePath(path) {
+  activePath = path;
+  document.querySelectorAll(".note-item").forEach((button) => {
+    button.classList.toggle("active", button.dataset.path === path);
+  });
+}
+
+function renderNotes() {
+  notesList.innerHTML = "";
+  if (!notes.length) {
+    notesStatus.textContent = "目前沒有 MD 檔，按「新增 MD」開始。";
+    return;
+  }
+
+  notes.forEach((note) => {
+    const button = document.createElement("button");
+    button.type = "button";
+    button.className = "note-item";
+    button.dataset.path = note.path;
+    button.innerHTML = `
+      <span class="note-name">${escapeHtml(note.name)}</span>
+      <span class="note-path">${escapeHtml(note.path)}</span>
+    `;
+    button.addEventListener("click", () => loadNote(note.path));
+    notesList.append(button);
+  });
+
+  notesStatus.textContent = `共 ${notes.length} 個 MD 檔`;
+  setActivePath(activePath);
+}
+
+async function loadNotes() {
+  notesStatus.textContent = "正在讀取 GitHub 檔案...";
+  refreshNotesButton.disabled = true;
+
+  try {
+    const response = await fetch("/api/notes");
+    const result = await response.json().catch(() => ({}));
+    if (!response.ok) throw new Error(result.error || "讀取檔案清單失敗");
+    notes = result.notes || [];
+    renderNotes();
+  } catch (error) {
+    notesStatus.textContent = error.message;
+  } finally {
+    refreshNotesButton.disabled = false;
+  }
+}
+
+async function loadNote(path) {
+  statusText.textContent = "正在載入 MD 檔案...";
+
+  try {
+    const response = await fetch(`/api/notes?path=${encodeURIComponent(path)}`);
+    const result = await response.json().catch(() => ({}));
+    if (!response.ok) throw new Error(result.error || "讀取檔案失敗");
+
+    const title = extractTitle(result.content || "");
+    filenameInput.value = result.name || normalizeFilename(path.split("/").pop() || "note.md");
+    titleInput.value = title;
+    contentInput.value = contentWithoutTitle(result.content || "", title);
+    editorHeading.textContent = result.name || "編輯 Markdown";
+    setActivePath(result.path || path);
+    saveDraft();
+    updatePreview();
+    statusText.textContent = `已載入：${result.path || path}`;
+  } catch (error) {
+    statusText.textContent = error.message;
+  }
+}
+
 function saveDraft() {
   const data = {
     filename: normalizeFilename(filenameInput.value),
     title: titleInput.value,
     content: contentInput.value,
+    activePath,
     savedAt: new Date().toISOString(),
   };
   filenameInput.value = data.filename;
   localStorage.setItem(storageKey, JSON.stringify(data));
-  statusText.textContent = `已儲存草稿：${new Date().toLocaleString("zh-TW")}`;
 }
 
 function loadDraft() {
@@ -142,11 +229,18 @@ function loadDraft() {
     filenameInput.value = data.filename || "note.md";
     titleInput.value = data.title || "";
     contentInput.value = data.content || "";
+    activePath = data.activePath || "";
+    editorHeading.textContent = data.filename || "新增或編輯 Markdown";
     statusText.textContent = "已載入上次儲存的草稿";
   } catch {
     statusText.textContent = "草稿讀取失敗，可以重新開始";
   }
   updatePreview();
+}
+
+function saveDraftWithStatus() {
+  saveDraft();
+  statusText.textContent = `已儲存草稿：${new Date().toLocaleString("zh-TW")}`;
 }
 
 function downloadMarkdown() {
@@ -161,7 +255,7 @@ function downloadMarkdown() {
   link.click();
   link.remove();
   URL.revokeObjectURL(url);
-  saveDraft();
+  saveDraftWithStatus();
 }
 
 async function publishMarkdown() {
@@ -188,13 +282,14 @@ async function publishMarkdown() {
     });
     const result = await response.json().catch(() => ({}));
 
-    if (!response.ok) {
-      throw new Error(result.error || "發布失敗");
-    }
+    if (!response.ok) throw new Error(result.error || "發布失敗");
 
     filenameInput.value = filename;
+    editorHeading.textContent = filename;
+    setActivePath(result.path || "");
     saveDraft();
     statusText.innerHTML = `已發布：<a href="${result.htmlUrl}" target="_blank" rel="noreferrer">${result.path}</a>`;
+    await loadNotes();
   } catch (error) {
     statusText.textContent = error.message;
   } finally {
@@ -206,7 +301,10 @@ function newDraft() {
   filenameInput.value = "note.md";
   titleInput.value = "";
   contentInput.value = "";
+  activePath = "";
+  editorHeading.textContent = "新增 Markdown";
   localStorage.removeItem(storageKey);
+  setActivePath("");
   statusText.textContent = "已建立新的空白內容";
   updatePreview();
 }
@@ -215,9 +313,11 @@ function newDraft() {
   input.addEventListener("input", updatePreview);
 });
 
-saveButton.addEventListener("click", saveDraft);
+saveButton.addEventListener("click", saveDraftWithStatus);
 downloadButton.addEventListener("click", downloadMarkdown);
 publishButton.addEventListener("click", publishMarkdown);
 newButton.addEventListener("click", newDraft);
+refreshNotesButton.addEventListener("click", loadNotes);
 
 loadDraft();
+loadNotes();
