@@ -33,13 +33,16 @@ function fromBase64(value) {
   return Buffer.from(value || "", "base64").toString("utf8");
 }
 
-async function githubRequest(url) {
+async function githubRequest(url, options = {}) {
   const response = await fetch(url, {
+    ...options,
     headers: {
       Accept: "application/vnd.github+json",
       Authorization: `Bearer ${getRequiredEnv("GITHUB_TOKEN")}`,
+      "Content-Type": "application/json",
       "User-Agent": "md-content-saver",
       "X-GitHub-Api-Version": "2022-11-28",
+      ...options.headers,
     },
   });
 
@@ -86,9 +89,9 @@ async function listMarkdownFiles({ owner, repo, branch, notesDir }) {
 }
 
 module.exports = async function notes(request, response) {
-  if (request.method !== "GET") {
-    response.setHeader("Allow", "GET");
-    sendJson(response, 405, { error: "Only GET is allowed." });
+  if (!["GET", "DELETE"].includes(request.method)) {
+    response.setHeader("Allow", "GET, DELETE");
+    sendJson(response, 405, { error: "Only GET and DELETE are allowed." });
     return;
   }
 
@@ -98,6 +101,44 @@ module.exports = async function notes(request, response) {
     const branch = process.env.GITHUB_BRANCH || "main";
     const notesDir = normalizeDirectory(process.env.NOTES_DIR);
     const requestedPath = request.query?.path;
+
+    if (request.method === "DELETE") {
+      const publishPassword = getRequiredEnv("PUBLISH_PASSWORD");
+      if (request.headers["x-publish-password"] !== publishPassword) {
+        sendJson(response, 401, { error: "發布密碼不正確。" });
+        return;
+      }
+
+      const path = request.body?.path;
+      if (!isSafeNotePath(path, notesDir)) {
+        sendJson(response, 400, { error: "檔案路徑不合法。" });
+        return;
+      }
+
+      const encodedPath = path.split("/").map(encodeURIComponent).join("/");
+      const apiUrl = `https://api.github.com/repos/${owner}/${repo}/contents/${encodedPath}`;
+      const file = await githubRequest(`${apiUrl}?ref=${encodeURIComponent(branch)}`);
+
+      if (file.type !== "file") {
+        sendJson(response, 404, { error: "找不到 MD 檔案。" });
+        return;
+      }
+
+      const result = await githubRequest(apiUrl, {
+        method: "DELETE",
+        body: JSON.stringify({
+          message: `Delete ${path}`,
+          sha: file.sha,
+          branch,
+        }),
+      });
+
+      sendJson(response, 200, {
+        path,
+        commitUrl: result.commit?.html_url,
+      });
+      return;
+    }
 
     if (requestedPath) {
       if (!isSafeNotePath(requestedPath, notesDir)) {

@@ -127,6 +127,16 @@ button.primary:hover {
   background: var(--accent-dark);
 }
 
+button.danger {
+  border-color: #fecaca;
+  color: #b91c1c;
+}
+
+button.danger:hover:not(:disabled) {
+  border-color: #dc2626;
+  background: #fef2f2;
+}
+
 #refreshNotesButton {
   width: 38px;
   height: 38px;

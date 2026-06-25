@@ -15,6 +15,7 @@ const wordCount = document.querySelector("#wordCount");
 const newButton = document.querySelector("#newButton");
 const saveButton = document.querySelector("#saveButton");
 const downloadButton = document.querySelector("#downloadButton");
+const deleteButton = document.querySelector("#deleteButton");
 const publishButton = document.querySelector("#publishButton");
 
 let notes = [];
@@ -137,6 +138,7 @@ function updatePreview() {
 
 function setActivePath(path) {
   activePath = path;
+  deleteButton.disabled = !activePath;
   document.querySelectorAll(".note-item").forEach((button) => {
     button.classList.toggle("active", button.dataset.path === path);
   });
@@ -297,6 +299,45 @@ async function publishMarkdown() {
   }
 }
 
+async function deleteMarkdown() {
+  if (!activePath) {
+    statusText.textContent = "請先從左側選擇要刪除的 MD 檔。";
+    return;
+  }
+
+  const password = publishPasswordInput.value;
+  const confirmed = window.confirm(`確定要刪除 ${activePath}？這會直接從 GitHub 移除。`);
+  if (!confirmed) return;
+
+  deleteButton.disabled = true;
+  publishButton.disabled = true;
+  statusText.textContent = "正在刪除 GitHub 上的 MD 檔...";
+
+  try {
+    const response = await fetch("/api/notes", {
+      method: "DELETE",
+      headers: {
+        "Content-Type": "application/json",
+        "X-Publish-Password": password,
+      },
+      body: JSON.stringify({ path: activePath }),
+    });
+    const result = await response.json().catch(() => ({}));
+
+    if (!response.ok) throw new Error(result.error || "刪除失敗");
+
+    const deletedPath = activePath;
+    newDraft();
+    statusText.textContent = `已刪除：${deletedPath}`;
+    await loadNotes();
+  } catch (error) {
+    statusText.textContent = error.message;
+    deleteButton.disabled = !activePath;
+  } finally {
+    publishButton.disabled = false;
+  }
+}
+
 function newDraft() {
   filenameInput.value = "note.md";
   titleInput.value = "";
@@ -315,6 +356,7 @@ function newDraft() {
 
 saveButton.addEventListener("click", saveDraftWithStatus);
 downloadButton.addEventListener("click", downloadMarkdown);
+deleteButton.addEventListener("click", deleteMarkdown);
 publishButton.addEventListener("click", publishMarkdown);
 newButton.addEventListener("click", newDraft);
 refreshNotesButton.addEventListener("click", loadNotes);
